@@ -14,11 +14,14 @@ set(PROJ_README_FILE  README.txt)
 # -- Include the tests in the bin folder?
 set(INCLUDE_TEST_IN_BIN FALSE)
 
+# Use C++11
+set(USE_CPP11 TRUE)
+
 # -- Set project name
 project(adt)
 
 # -- Include the magic ProjTools
-include("cmake/ProjTools.cmake")
+include(cmake/ProjTools.cmake)
 
 # -- Add the subdirectories
 set(PROJ_SUBDIRS  unittest; doc; tools; test)
@@ -27,3 +30,5 @@ set(PROJ_SUBDIRS  unittest; doc; tools; test)
 foreach(subdir ${PROJ_SUBDIRS})
   add_subdirectory(${subdir})
 endforeach(subdir)
+
+include(adt.cmake)
