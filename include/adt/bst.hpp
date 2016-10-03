@@ -54,30 +54,14 @@ namespace adt
             bst_iterator& operator++()
             {
                 node* curr = curr_;
-                if (curr->right) {
-                    curr = curr->right;
-                    if (curr) {
-                        while (curr->left) { curr = curr->left; }
-                    }
-                    curr_ = curr;
+                if (node* right = curr->right) {
+                    curr_ = minimum(right);
+                    return *this;
+                }
+                if (node* parent = curr->parent) {
+                    curr_ = rightmost_parent(curr, parent);
                 } else {
-                    node* parent = curr->parent;
-                    if (parent) {
-                        while (curr == parent->right) {
-                            curr = parent;
-                            parent = curr->parent;
-                            if (!parent) {
-                                break;
-                            }
-                        }
-                        curr_ = parent;
-                    } else {
-                        curr = curr->right;
-                        if (curr) {
-                            while (curr->left) { curr = curr->left; }
-                        }
-                        curr_ = curr;
-                    }
+                    curr_ = minimum(curr->right);
                 }
                 return *this;
             }
@@ -89,17 +73,17 @@ namespace adt
                 return it;
             }
 
-            bst_iterator& operator--()
-            {
-                return *this;
-            }
-
-            bst_iterator operator--(int)
-            {
-                bst_iterator it = *this;
-                --(*this);
-                return it;
-            }
+//            bst_iterator& operator--()
+//            {
+//                return *this;
+//            }
+//
+//            bst_iterator operator--(int)
+//            {
+//                bst_iterator it = *this;
+//                --(*this);
+//                return it;
+//            }
 
             T& operator*() { return curr_->val; }
 
@@ -118,6 +102,25 @@ namespace adt
             }
           private:
             node* curr_;
+
+            static node* minimum(node* n)
+            {
+                if (!n) { return 0; }
+                while (node* left = n->left) { n = left; }
+                return n;
+            }
+
+            static node* rightmost_parent(node* curr, node* parent)
+            {
+                while (curr == parent->right) {
+                    curr = parent;
+                    parent = parent->parent;
+                    if (!parent) {
+                        break;
+                    }
+                }
+                return parent;
+            }
 
             friend class bst<T>;
         };
