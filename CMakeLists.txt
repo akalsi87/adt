@@ -15,7 +15,8 @@ set(PROJ_README_FILE  README.txt)
 set(INCLUDE_TEST_IN_BIN FALSE)
 
 # Use C++11
-set(USE_CPP11 TRUE)
+set(USE_CPP 1)
+set(USE_CPP11 1)
 
 # -- Set project name
 project(adt)
