@@ -35,8 +35,9 @@ CPP_TEST( bstInt )
         TEST_TRUE(intSet.erase(intSet.find(5)) == intSet.end());
     }
     {// insert 10 elements
+        int N = 31;
         std::vector<int> values;
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < N; ++i) {
             values.push_back(i);
         }
         std::random_shuffle(values.begin(), values.end());
