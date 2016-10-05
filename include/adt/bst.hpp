@@ -260,7 +260,7 @@ namespace adt
 
         std::pair<iterator, bool> insert(const T& val)
         {
-            return insert(T(val));
+            return insert(std::move(T(val)));
         }
 
         std::pair<iterator, bool> insert(T&& val)
@@ -431,7 +431,7 @@ namespace adt
         comp_result_t compare(const T& a, const T& b) const
         {
             return (!cmp_(a, b))
-                       ? (!cmp_(b, a)) ? EQ : GT
+                       ? ((!cmp_(b, a)) ? EQ : GT)
                        : LT;
         }
 

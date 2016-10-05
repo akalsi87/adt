@@ -100,9 +100,10 @@ CPP_TEST( bstInt )
 
 #include <set>
 
-namespace performance {
+namespace performance
+{
 
-    int N = 1000000;
+    const int N = 2000000;
 
     std::vector<int> get_shuffled_values()
     {
@@ -117,7 +118,7 @@ namespace performance {
     const auto values = get_shuffled_values();
 
     template <class Container>
-    void performanceTestInsert(Container& intSet)
+    void perf_test_insert(Container& intSet)
     {
         for (int i : values) {
             intSet.insert(i);
@@ -125,7 +126,7 @@ namespace performance {
     }
 
     template <class Container>
-    void performanceTestFind(const Container& intSet)
+    void perf_test_find(const Container& intSet)
     {
         auto it = values.rbegin();
         const auto end = values.rend();
@@ -137,32 +138,32 @@ namespace performance {
     std::set<int> set;
     adt::bst<int> bst;
 
-    CPP_TEST( performanceStdSetInt_insert )
+    CPP_TEST( pStdSetInt_insert )
     {
-        performanceTestInsert(set);
+        perf_test_insert(set);
     }
 
-    CPP_TEST( performanceAdtBstInt_insert )
+    CPP_TEST( pAdtBstInt_insert )
     {
-        performanceTestInsert(bst);
+        perf_test_insert(bst);
     }
 
-    CPP_TEST( performanceStdSetInt_find )
+    CPP_TEST( pStdSetInt_find )
     {
-        performanceTestFind(set);
+        perf_test_find(set);
     }
 
-    CPP_TEST( performanceAdtBstInt_find )
+    CPP_TEST( pAdtBstInt_find )
     {
-        performanceTestFind(bst);
+        perf_test_find(bst);
     }
 
-    CPP_TEST( performanceStdSetInt_clear )
+    CPP_TEST( pStdSetInt_clear )
     {
         set.clear();
     }
 
-    CPP_TEST( performanceAdtBstInt_clear )
+    CPP_TEST( pAdtBstInt_clear )
     {
         bst.clear();
     }
