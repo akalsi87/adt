@@ -121,7 +121,8 @@ namespace performance
     void perf_test_insert(Container& intSet)
     {
         for (int i : values) {
-            intSet.insert(i);
+            auto r = intSet.insert(i);
+            (void)r;
         }
     }
 
@@ -131,7 +132,10 @@ namespace performance
         auto it = values.rbegin();
         const auto end = values.rend();
         for (; it != end; ++it) {
-            intSet.find(*it);
+            auto rit = intSet.find(*it);
+            if (rit == intSet.end()) {
+                exit(1);
+            }
         }
     }
 

@@ -158,7 +158,7 @@ namespace adt
             }
 
             template <class U, class Comparator>
-            friend class bst;
+            friend class adt::bst;
         };
 
         template <class T>
