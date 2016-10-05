@@ -17,8 +17,8 @@ namespace adt
     template <class T, class Comparator>
     class bst;
 
-    template <class T, class Comparator>
-    std::ostream& operator<<(std::ostream&, const bst<T, Comparator>&);
+    template <class U, class C>
+    std::ostream& operator<<(std::ostream&, const bst<U, C>&);
 
     namespace detail
     {
@@ -243,15 +243,18 @@ namespace adt
         {
             node* curr = root_;
             while (curr != nullptr) {
-                auto res = compare(curr->val, val);
-                if (res == EQ) {
-                    break;
-                } else if (res == LT) {
+                switch (compare(curr->val, val)) {
+                case EQ:
+                    goto find_loop_end;
+                case LT:
                     curr = curr->right;
-                } else {
+                    break;
+                case GT:
                     curr = curr->left;
+                    break;
                 }
             }
+        find_loop_end:
             return curr ? iterator(curr) : end();
         }
 
@@ -269,27 +272,26 @@ namespace adt
             bool was_always_smaller = true;
             bool was_always_larger = true;
             while (curr != nullptr) {
-                auto res = compare(curr->val, val);
-                if (res == EQ) {
-                    // found
-                    break;
-                }
-                prev = curr;
-                if (res == GT) {
-                    // search left
-                    curr = curr->left;
-                    was_smaller = true;
-                    was_larger = false;
-                    was_always_larger = false;
-                } else {
-                    // search right
+                switch (compare(curr->val, val)) {
+                case EQ: // found!
+                    goto insert_loop_end;
+                case LT: // search right
+                    prev = curr;
                     curr = curr->right;
                     was_smaller = false;
                     was_larger = true;
                     was_always_smaller = false;
+                    break;
+                case GT: // search left
+                    prev = curr;
+                    curr = curr->left;
+                    was_smaller = true;
+                    was_larger = false;
+                    was_always_larger = false;
+                    break;
                 }
             }
-
+        insert_loop_end:
             if (curr) {
                 return std::make_pair(iterator(curr), false);
             } else {
@@ -460,8 +462,8 @@ namespace adt
         friend std::ostream& operator<< <> (std::ostream& os, const bst& t);
     };
 
-    template <class T, class Comparator>
-    std::ostream& operator<<(std::ostream& os, const bst<T, Comparator>& t)
+    template <class U, class C>
+    std::ostream& operator<<(std::ostream& os, const bst<U, C>& t)
     {
         os << "{";
         t.print_tree(t.leftmost_, os);
