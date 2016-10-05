@@ -86,7 +86,7 @@ CPP_TEST( bstInt )
         TEST_TRUE(static_cast<int>(intSet.size()) == N);
         size_t sz = intSet.size();
         for (int i : values) {
-            std::cout << "Removing entry: " << i << std::endl;
+            // std::cout << "Removing entry: " << i << std::endl;
             TEST_TRUE(intSet.erase(i) == 1);
             TEST_TRUE(intSet.find(i) == intSet.end());
             TEST_TRUE(intSet.size() == --sz);

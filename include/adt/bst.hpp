@@ -14,11 +14,11 @@
 namespace adt
 {
 
-    template <class T>
+    template <class T, class Comparator>
     class bst;
 
-    template<typename T>
-    std::ostream& operator<<(std::ostream&, const bst<T>&);
+    template <class T, class Comparator>
+    std::ostream& operator<<(std::ostream&, const bst<T, Comparator>&);
 
     namespace detail
     {
@@ -157,7 +157,8 @@ namespace adt
                 }
             }
 
-            friend class bst<T>;
+            template <class U, class Comparator>
+            friend class bst;
         };
 
         template <class T>
@@ -218,7 +219,7 @@ namespace adt
 
     } // namespace detail
 
-    template <class T>
+    template <class T, class Comparator = std::less<T>>
     class bst
     {
       public:
@@ -230,6 +231,7 @@ namespace adt
           , leftmost_(nullptr)
           , rightmost_(nullptr)
           , size_(0)
+          , cmp_()
         { }
 
         ~bst()
@@ -241,16 +243,13 @@ namespace adt
         {
             node* curr = root_;
             while (curr != nullptr) {
-                if (curr->val == val) {
-                    // found it!
+                auto res = compare(curr->val, val);
+                if (res == EQ) {
                     break;
-                }
-                if (curr->val > val) {
-                    // search left
-                    curr = curr->left;
-                } else {
-                    // search right
+                } else if (res == LT) {
                     curr = curr->right;
+                } else {
+                    curr = curr->left;
                 }
             }
             return curr ? iterator(curr) : end();
@@ -270,12 +269,13 @@ namespace adt
             bool was_always_smaller = true;
             bool was_always_larger = true;
             while (curr != nullptr) {
-                if (curr->val == val) {
+                auto res = compare(curr->val, val);
+                if (res == EQ) {
                     // found
                     break;
                 }
                 prev = curr;
-                if (curr->val > val) {
+                if (res == GT) {
                     // search left
                     curr = curr->left;
                     was_smaller = true;
@@ -335,20 +335,22 @@ namespace adt
 
             auto next = ++it;
             node* replacement;
-            if (curr->left == nullptr && curr->right == nullptr) {
+            auto left = curr->left;
+            auto right = curr->right;
+            if (left == nullptr && right == nullptr) {
                 replacement = nullptr;
-            } else if (curr->left == nullptr) {
-                replacement = curr->right;
-            } else if (curr->right == nullptr) {
-                replacement = curr->left;
+            } else if (left == nullptr) {
+                replacement = right;
+            } else if (right == nullptr) {
+                replacement = left;
             } else {
-                node* new_parent_for_left = curr->right;
+                node* new_parent_for_left = right;
                 while (new_parent_for_left->left != nullptr) {
                     new_parent_for_left = new_parent_for_left->left;
                 }
-                new_parent_for_left->left = curr->left;
-                curr->left->parent = new_parent_for_left;
-                replacement = curr->right;
+                new_parent_for_left->left = left;
+                left->parent = new_parent_for_left;
+                replacement = right;
             }
 
             // set parentage
@@ -415,6 +417,27 @@ namespace adt
         node* leftmost_;
         node* rightmost_;
         size_t size_;
+        Comparator cmp_;
+
+        enum comp_result_t
+        {
+            EQ,
+            LT,
+            GT
+        };
+
+        comp_result_t compare(const T& a, const T& b) const
+        {
+            if (!cmp_(a, b)) {
+                if (!cmp_(b, a)) {
+                    return EQ;
+                } else {
+                    return GT;
+                }
+            } else {
+                return LT;
+            }
+        }
 
         // don't allow copies yet
         bst(const bst&) = delete;
@@ -443,8 +466,8 @@ namespace adt
         friend std::ostream& operator<< <> (std::ostream& os, const bst& t);
     };
 
-    template <class T>
-    std::ostream& operator<<(std::ostream& os, const bst<T>& t)
+    template <class T, class Comparator>
+    std::ostream& operator<<(std::ostream& os, const bst<T, Comparator>& t)
     {
         os << "{";
         t.print_tree(t.leftmost_, os);
