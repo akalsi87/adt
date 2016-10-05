@@ -97,3 +97,74 @@ CPP_TEST( bstInt )
         TEST_TRUE(intSet.begin() == intSet.end());
     }
 }
+
+#include <set>
+
+namespace performance {
+
+    int N = 1000000;
+
+    std::vector<int> get_shuffled_values()
+    {
+        std::vector<int> values;
+        for (int i = 0; i < N; ++i) {
+            values.push_back(i);
+        }
+        std::random_shuffle(values.begin(), values.end());
+        return values;
+    }
+
+    const auto values = get_shuffled_values();
+
+    template <class Container>
+    void performanceTestInsert(Container& intSet)
+    {
+        for (int i : values) {
+            intSet.insert(i);
+        }
+    }
+
+    template <class Container>
+    void performanceTestFind(const Container& intSet)
+    {
+        auto it = values.rbegin();
+        const auto end = values.rend();
+        for (; it != end; ++it) {
+            intSet.find(*it);
+        }
+    }
+
+    std::set<int> set;
+    adt::bst<int> bst;
+
+    CPP_TEST( performanceStdSetInt_insert )
+    {
+        performanceTestInsert(set);
+    }
+
+    CPP_TEST( performanceAdtBstInt_insert )
+    {
+        performanceTestInsert(bst);
+    }
+
+    CPP_TEST( performanceStdSetInt_find )
+    {
+        performanceTestFind(set);
+    }
+
+    CPP_TEST( performanceAdtBstInt_find )
+    {
+        performanceTestFind(bst);
+    }
+
+    CPP_TEST( performanceStdSetInt_clear )
+    {
+        set.clear();
+    }
+
+    CPP_TEST( performanceAdtBstInt_clear )
+    {
+        bst.clear();
+    }
+
+} // namespace performance

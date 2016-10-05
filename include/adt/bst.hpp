@@ -428,15 +428,9 @@ namespace adt
 
         comp_result_t compare(const T& a, const T& b) const
         {
-            if (!cmp_(a, b)) {
-                if (!cmp_(b, a)) {
-                    return EQ;
-                } else {
-                    return GT;
-                }
-            } else {
-                return LT;
-            }
+            return (!cmp_(a, b))
+                       ? (!cmp_(b, a)) ? EQ : GT
+                       : LT;
         }
 
         // don't allow copies yet
