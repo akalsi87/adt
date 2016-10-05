@@ -49,6 +49,11 @@ CPP_TEST( bstInt )
             // std::cout << intSet << std::endl;
         }
 
+        for (int i : values) {
+            auto it = intSet.find(i);
+            TEST_TRUE(it != intSet.end());
+        }
+
         auto it = ++(intSet.begin());
         auto itPrev = intSet.begin();
         for (; it != intSet.end(); ++it, ++itPrev) {
