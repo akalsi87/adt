@@ -50,19 +50,11 @@ namespace adt
             { }
 
             bst_iterator(const bst_iterator& rhs) = default;
+            bst_iterator& operator=(const bst_iterator& rhs) = default;
 
             bst_iterator& operator++()
             {
-                node* curr = curr_;
-                if (node* right = curr->right) {
-                    curr_ = minimum(right);
-                    return *this;
-                }
-                if (node* parent = curr->parent) {
-                    curr_ = rightmost_parent(curr, parent);
-                } else {
-                    curr_ = minimum(curr->right);
-                }
+                curr_ = find_next_node(curr_);
                 return *this;
             }
 
@@ -73,23 +65,22 @@ namespace adt
                 return it;
             }
 
-//            bst_iterator& operator--()
-//            {
-//                return *this;
-//            }
-//
-//            bst_iterator operator--(int)
-//            {
-//                bst_iterator it = *this;
-//                --(*this);
-//                return it;
-//            }
+            bst_iterator& operator--()
+            {
+                curr_ = find_prev_node(curr_);
+                return *this;
+            }
+
+            bst_iterator operator--(int)
+            {
+                bst_iterator it = *this;
+                --(*this);
+                return it;
+            }
 
             T& operator*() { return curr_->val; }
 
             const T& operator*() const { return curr_->val; }
-
-            bst_iterator& operator=(const bst_iterator& rhs) = default;
 
             bool operator==(const bst_iterator& rhs) const
             {
@@ -103,9 +94,16 @@ namespace adt
           private:
             node* curr_;
 
+            static node* maximum(node* n)
+            {
+                if (!n) { return nullptr; }
+                while (node* right = n->right) { n = right; }
+                return n;
+            }
+
             static node* minimum(node* n)
             {
-                if (!n) { return 0; }
+                if (!n) { return nullptr; }
                 while (node* left = n->left) { n = left; }
                 return n;
             }
@@ -122,7 +120,100 @@ namespace adt
                 return parent;
             }
 
+            static node* leftmost_parent(node* curr, node* parent)
+            {
+                while (curr == parent->left) {
+                    curr = parent;
+                    parent = parent->parent;
+                    if (!parent) {
+                        break;
+                    }
+                }
+                return parent;
+            }
+
+            static node* find_next_node(node* n)
+            {
+                if (node* right = n->right) {
+                    return minimum(right);
+                }
+                if (node* parent = n->parent) {
+                    return rightmost_parent(n, parent);
+                } else {
+                    // at tree root
+                    return minimum(n->right);
+                }
+            }
+
+            static node* find_prev_node(node* n)
+            {
+                if (node* left = n->left) {
+                    return maximum(n->left);
+                }
+                if (node* parent = n->parent) {
+                    return leftmost_parent(n, parent);
+                } else {
+                    return maximum(n->left);
+                }
+            }
+
             friend class bst<T>;
+        };
+
+        template <class T>
+        class bst_reverse_iterator
+        {
+          private:
+            using node = bst_node<T>;
+          public:
+            bst_reverse_iterator(node* curr)
+              : it_(curr)
+            { }
+
+            bst_reverse_iterator(const bst_reverse_iterator& rhs) = default;
+            bst_reverse_iterator& operator=(const bst_reverse_iterator& rhs) = default;
+
+            bst_reverse_iterator& operator++()
+            {
+                --it_;
+                return *this;
+            }
+
+            bst_reverse_iterator operator++(int)
+            {
+                auto it = *this;
+                ++(*this);
+                return it;
+            }
+
+            bst_reverse_iterator& operator--()
+            {
+                ++it_;
+                return *this;
+            }
+
+            bst_reverse_iterator operator--(int)
+            {
+                auto it = *this;
+                --(*this);
+                return it;
+            }
+
+            T& operator*() { return *it_; }
+
+            const T& operator*() const { return *it_; }
+
+            bool operator==(const bst_reverse_iterator& rhs) const
+            {
+                return it_ == rhs.it_;
+            }
+
+            bool operator!=(const bst_reverse_iterator& rhs) const
+            {
+                return !(*this == rhs);
+            }
+          private:
+            bst_iterator<T> it_;
         };
 
     } // namespace detail
@@ -132,10 +223,19 @@ namespace adt
     {
       public:
         using iterator = detail::bst_iterator<T>;
+        using reverse_iterator = detail::bst_reverse_iterator<T>;
 
-        bst() : root_(nullptr), leftmost_(nullptr) { }
+        bst()
+          : root_(nullptr)
+          , leftmost_(nullptr)
+          , rightmost_(nullptr)
+          , size_(0)
+        { }
 
-        ~bst() { clear(); }
+        ~bst()
+        {
+            clear();
+        }
 
         iterator find(const T& val) const
         {
@@ -166,7 +266,9 @@ namespace adt
             node* prev = nullptr;
             node* curr = root_;
             bool was_smaller = true;
+            bool was_larger = true;
             bool was_always_smaller = true;
+            bool was_always_larger = true;
             while (curr != nullptr) {
                 if (curr->val == val) {
                     // found
@@ -177,13 +279,17 @@ namespace adt
                     // search left
                     curr = curr->left;
                     was_smaller = true;
+                    was_larger = false;
+                    was_always_larger = false;
                 } else {
                     // search right
                     curr = curr->right;
                     was_smaller = false;
+                    was_larger = true;
                     was_always_smaller = false;
                 }
             }
+
             if (curr) {
                 return std::make_pair(iterator(curr), false);
             } else {
@@ -201,6 +307,10 @@ namespace adt
                 if (was_smaller && was_always_smaller) {
                     leftmost_ = new_node;
                 }
+                if (was_larger && was_always_larger) {
+                    rightmost_ = new_node;
+                }
+                ++size_;
                 return std::make_pair(iterator(new_node), true);
             }
         }
@@ -220,24 +330,48 @@ namespace adt
         {
             node* curr = it.curr_;
             assert(curr);
-            leftmost_ = (curr == leftmost_) ? curr->parent : leftmost_;
+            leftmost_ = (curr == leftmost_) ? iterator::find_next_node(leftmost_) : leftmost_;
+            rightmost_ = (curr == rightmost_) ? iterator::find_prev_node(rightmost_) : rightmost_;
+
+            auto next = ++it;
+            node* replacement;
             if (curr->left == nullptr && curr->right == nullptr) {
-                /* no children case */
-                iterator next = ++it;
-                if (node* parent = curr->parent) {
-                    if (curr == parent->left) {
-                        parent->left = nullptr;
-                    } else {
-                        parent->right = nullptr;
-                    }
-                } else {
-                    root_ = nullptr;
-                }
-                dispose(curr);
-                return next;
+                replacement = nullptr;
+            } else if (curr->left == nullptr) {
+                replacement = curr->right;
+            } else if (curr->right == nullptr) {
+                replacement = curr->left;
             } else {
-                return end();
+                node* new_parent_for_left = curr->right;
+                while (new_parent_for_left->left != nullptr) {
+                    new_parent_for_left = new_parent_for_left->left;
+                }
+                new_parent_for_left->left = curr->left;
+                curr->left->parent = new_parent_for_left;
+                replacement = curr->right;
             }
+
+            // set parentage
+            node* replacement_parent = nullptr;
+            if (node* parent = curr->parent) {
+                if (curr == parent->left) {
+                    parent->left = replacement;
+                } else {
+                    parent->right = replacement;
+                }
+                replacement_parent = parent;
+            } else {
+                root_ = replacement;
+            }
+
+            if (replacement) {
+                replacement->parent = replacement_parent;
+            }
+
+            // update size
+            --size_;
+
+            return next;
         }
 
         iterator begin()
@@ -250,15 +384,37 @@ namespace adt
             return iterator(nullptr);
         }
 
+        reverse_iterator rbegin()
+        {
+            return reverse_iterator(rightmost_);
+        }
+
+        reverse_iterator rend() const
+        {
+            return reverse_iterator(nullptr);
+        }
+
+        size_t size() const
+        {
+            return size_;
+        }
+
         void clear()
         {
-            destroy_tree(root_);
-            root_ = leftmost_ = nullptr;
+            auto it = begin();
+            const auto finish = end();
+            for(; it != finish; it = erase(it)) { }
+            assert(root_ == nullptr);
+            assert(leftmost_ == nullptr);
+            assert(rightmost_ == nullptr);
+            assert(size_ == 0);
         }
       private:
         using node = detail::bst_node<T>;
         node* root_;
         node* leftmost_;
+        node* rightmost_;
+        size_t size_;
 
         // don't allow copies yet
         bst(const bst&) = delete;
@@ -272,16 +428,6 @@ namespace adt
         static void dispose(node* n)
         {
             delete n;
-        }
-
-        static void destroy_tree(node* n)
-        {
-            if (!n) { return; }
-            node* lft = n->left;
-            node* rgt = n->right;
-            dispose(n);
-            destroy_tree(lft);
-            destroy_tree(rgt);
         }
 
         static void print_tree(node* n, std::ostream& os)

@@ -34,8 +34,8 @@ CPP_TEST( bstInt )
         TEST_TRUE(*intSet.find(5) == 5);
         TEST_TRUE(intSet.erase(intSet.find(5)) == intSet.end());
     }
-    {// insert 10 elements
-        int N = 31;
+    {// insert N elements
+        int N = 32;
         std::vector<int> values;
         for (int i = 0; i < N; ++i) {
             values.push_back(i);
@@ -46,13 +46,48 @@ CPP_TEST( bstInt )
             auto r = intSet.insert(i);
             TEST_TRUE(*(r.first) == i);
             TEST_TRUE(r.second);
-            std::cout << intSet << std::endl;
+            // std::cout << intSet << std::endl;
+        }
+
+        auto it = ++(intSet.begin());
+        auto itPrev = intSet.begin();
+        for (; it != intSet.end(); ++it, ++itPrev) {
+            auto prevCopy = itPrev;
+            auto currCopy = it;
+            TEST_TRUE((++prevCopy) == it);
+            TEST_TRUE((--currCopy) == itPrev);
         }
 
         int count = 0;
         for (int i : intSet) {
             TEST_TRUE(i == count++);
         }
+
+        // erase value not present
+        TEST_TRUE(intSet.erase(N) == 0);
+
+        // insert value already present
+        auto itAndBool = intSet.insert(0);
+        TEST_TRUE(*itAndBool.first == 0);
+        TEST_TRUE(itAndBool.second == false);
+
+        count--;
+        for(auto it = intSet.rbegin(); it != intSet.rend(); ++it) {
+            TEST_TRUE(*it == count--);
+        }
+
+        std::random_shuffle(values.begin(), values.end());
+        // remove values
+        TEST_TRUE(static_cast<int>(intSet.size()) == N);
+        size_t sz = intSet.size();
+        for (int i : values) {
+            std::cout << "Removing entry: " << i << std::endl;
+            TEST_TRUE(intSet.erase(i) == 1);
+            TEST_TRUE(intSet.find(i) == intSet.end());
+            TEST_TRUE(intSet.size() == --sz);
+            // std::cout << "Set now: " << intSet << std::endl;
+        }
+
         intSet.clear();
         TEST_TRUE(intSet.begin() == intSet.end());
     }
