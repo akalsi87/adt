@@ -3,11 +3,12 @@
  * \date Oct 02, 2016
  */
 
-#include <vector>
-#include <algorithm>
+#include "adt/bst.hpp"
+
 #include "unittest.hpp"
 
-#include "adt/bst.hpp"
+#include <vector>
+#include <algorithm>
 
 CPP_TEST( bstInt )
 {
