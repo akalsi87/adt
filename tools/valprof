@@ -16,7 +16,7 @@ else
 fi
 echo "Temp file: $tempLog"
 
-cmd="valgrind --tool=callgrind --toggle-collect=test_* ${extraArgs} --callgrind-out-file=$tempLog $@"
+cmd="valgrind --tool=callgrind --toggle-collect=test_* --toggle-collect=*::test_* ${extraArgs} --callgrind-out-file=$tempLog $@"
 echo "Running command: '$cmd'"
 
 ($cmd >& /dev/null)
