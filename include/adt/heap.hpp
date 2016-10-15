@@ -21,11 +21,6 @@ namespace adt
     template <class U, class C>
     std::ostream& operator<<(std::ostream&, const heap<U, C>&);
 
-    namespace detail
-    {
-
-    } // namespace detail
-
     template <class T, class Comparator = std::greater<T>>
     class heap
     {

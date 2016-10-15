@@ -19,3 +19,7 @@ create_test     (test_lru_cache)
 add_test_exe    (test_heap test_heap.cpp)
 test_link_libs  (test_heap )
 create_test     (test_heap)
+
+add_test_exe    (test_trie test_trie.cpp)
+test_link_libs  (test_trie )
+create_test     (test_trie)
