@@ -284,7 +284,7 @@ namespace adt
             return table_.size();
         }
 
-      private:
+      protected:
         class entry_traits
         {
           public:

@@ -25,6 +25,9 @@ CPP_TEST( hashMapIntToCString )
         TEST_TRUE(rv.first->first == val);
         TEST_TRUE(std::strcmp(rv.first->second, "num") == 0);
         TEST_TRUE(map.size() == (size_t)(i + 1));
+        if (i == 20) {
+            std::cout << map;
+        }
     }
 
     TEST_TRUE(map.size() == (size_t)N);
@@ -33,6 +36,8 @@ CPP_TEST( hashMapIntToCString )
         TEST_TRUE(map.erase(key) == 1);
         TEST_TRUE(map.size() == --sz);
     }
+
+    TEST_TRUE(map.erase(1) == 0);
 
     std::cout << map << std::endl;
 }

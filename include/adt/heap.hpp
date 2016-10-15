@@ -36,20 +36,19 @@ namespace adt
         const T& top() const
         {
             assert(size() != 0);
-            assert(valid_heap());
+            // assert(valid_heap());
             return arr_.front();
         }
 
         T pop()
         {
-            using std::swap;
             assert(size() != 0);
-            assert(valid_heap());
-            swap(arr_.front(), arr_.back());
+            // assert(valid_heap());
+            std::swap(arr_.front(), arr_.back());
             T val = arr_.back();
             arr_.pop_back();
             swim_down(0);
-            assert(valid_heap());
+            // assert(valid_heap());
             return val;
         }
 
@@ -60,12 +59,12 @@ namespace adt
 
         void insert(T&& v)
         {
-            assert(valid_heap());
+            // assert(valid_heap());
             arr_.emplace_back(v);
             swim_up(arr_.size() - 1);
-            assert(valid_heap());
+            // assert(valid_heap());
         }
-      private:
+      protected:
         std::vector<T> arr_;
         Comparator cmp_;
 
@@ -124,8 +123,6 @@ namespace adt
                     }
                 } else if (has_l && !compare(idx, l)) {
                     next = l;
-                } else if (has_r && !compare(idx, r)) {
-                    next = r;
                 } else {
                     // done!
                     break;
@@ -145,8 +142,6 @@ namespace adt
                 return compare(idx, l) && compare(idx, r) && valid_heap(l) && valid_heap(r);
             } else if (has_l) {
                 return compare(idx, l) && valid_heap(l);
-            } else if (has_r) {
-                return compare(idx, r) && valid_heap(r);
             } else {
                 return true;
             }

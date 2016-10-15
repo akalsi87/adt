@@ -107,7 +107,7 @@ namespace adt
         {
             return searcher<true>(*this)(s) != nullptr;
         }
-      private:
+      protected:
         using node = detail::trie_node<char>;
 
         std::unique_ptr<node> root_;

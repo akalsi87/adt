@@ -374,7 +374,7 @@ namespace adt
 
             // update size
             --size_;
-
+            dispose(curr);
             return next;
         }
 
