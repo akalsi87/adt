@@ -50,8 +50,10 @@ namespace adt
 
             void clear()
             {
-                empty_contents(buckets_);
-                size_ = 0;
+                if (size_ != 0) {
+                    empty_contents(buckets_);
+                    size_ = 0;
+                }
             }
 
             Entry* find(const Entry& e) const
@@ -97,7 +99,8 @@ namespace adt
                     --size_;
 
                     auto cap = capacity();
-                    if (size_ < (size_t)(0.05f * cap)) {
+                    // shrink if table at half of load factor
+                    if (static_cast<float>(size_)/cap < load_factor_/2) {
                         rehash(next_capacity(size_ + 1));
                     }
 
