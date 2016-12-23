@@ -83,11 +83,12 @@ namespace adt
 
         static int parent(size_t i)
         {
-            return ((i+1) >> 1) - 1;
+            return i == 0 ? 0 : ((i+1) >> 1) - 1;
         }
 
         void swim_up(size_t idx)
         {
+            if (size() < 2) { return; }
             size_t p = parent(idx);
             while (compare(idx, p)) {
                 swap(idx, p);

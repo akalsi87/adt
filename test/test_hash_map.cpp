@@ -20,21 +20,20 @@ CPP_TEST( hashMapIntToCString )
     for (int i = 0; i < N; ++i) {
         auto val = std::rand();
         keys[i] = val;
+        size_t prev_size = map.size();
         auto rv = map.insert(val, "num");
-        TEST_TRUE(rv.second);
         TEST_TRUE(rv.first->first == val);
         TEST_TRUE(std::strcmp(rv.first->second, "num") == 0);
-        TEST_TRUE(map.size() == (size_t)(i + 1));
+        TEST_TRUE(map.size() == (rv.second ? ++prev_size : prev_size));
         if (i == 20) {
             std::cout << map;
         }
     }
 
-    TEST_TRUE(map.size() == (size_t)N);
-    size_t sz = N;
+    size_t sz = map.size();
     for (auto key : keys) {
-        TEST_TRUE(map.erase(key) == 1);
-        TEST_TRUE(map.size() == --sz);
+        size_t removed = map.erase(key);
+        TEST_TRUE(map.size() == (removed ? --sz : sz));
     }
 
     TEST_TRUE(map.erase(1) == 0);
@@ -51,7 +50,21 @@ namespace performance
 
     std::vector<int> generate_keys()
     {
+#if !defined(_WIN32)
         const char* env = getenv("N");
+#else
+        char * buffer = 0;
+        size_t len = 0;
+        _dupenv_s(&buffer, &len, "N");
+        assert(len <= 47);
+        char enva[48] = { 0, };
+        const char * env = 0;
+        if (buffer) {
+            strcpy_s(enva, buffer);
+            env = enva;
+            free(buffer);
+        }
+#endif
         if (env) {
             N = std::atoi(env);
         }
