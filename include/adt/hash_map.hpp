@@ -36,11 +36,17 @@ namespace adt
         {
           public:
             hash_table(size_t cap, float load_factor)
-              : traits_()
-              , buckets_(cap)
-              , load_factor_(load_factor)
+              : buckets_(cap, nullptr)
               , size_(0)
+              , inc_cap_(0)
+              , dec_cap_(0)
+              , min_cap_(37)
+              , traits_()
+              , load_factor_(load_factor)
             {
+                assert(load_factor > 0.0f);
+                assert(load_factor < 1.0f);
+                update_cap(cap);
             }
 
             ~hash_table()
@@ -67,24 +73,24 @@ namespace adt
             {
                 auto res = find_prev_and_curr(e);
                 entry_node* node = res.second;
-                if (!(inserted = !node)) {
-                    return &(node->value);
-                } else {
+                if (!node) {
+                    inserted = true;
                     entry_node* new_node = create(std::move(Entry(e)));
-                    entry_node** pprev = res.first;
+                    auto pprev = res.first;
                     assert(pprev);
-                    *(pprev) = new_node;
+                    *pprev = new_node;
                     ++size_;
-
                     auto cap = capacity();
-                    if (size_ > (size_t)(load_factor_ * cap)) {
+                    if (size_ > inc_cap_) {
                         size_t next_cap = next_capacity(cap);
                         if (next_cap > cap) {
                             rehash(next_cap);
                         }// else { /* overflow! no rehash */ }
                     }
-
                     return &(new_node->value);
+                } else {
+                    inserted = false;
+                    return &(node->value);
                 }
             }
 
@@ -99,8 +105,8 @@ namespace adt
                     --size_;
 
                     auto cap = capacity();
-                    // shrink if table at half of load factor
-                    if (static_cast<float>(size_)/cap < load_factor_/2) {
+                    // shrink if table is too sparse
+                    if (size_ < dec_cap_) {
                         rehash(next_capacity(size_ + 1));
                     }
 
@@ -125,18 +131,22 @@ namespace adt
                 entry_node* next;
                 Entry value;
 
-                entry_node(Entry&& v)
-                  : next(nullptr)
+                entry_node(Entry&& v, entry_node* n = nullptr)
+                  : next(n)
                   , value(std::forward<Entry>(v))
                 { }
             };
 
             using buckets_type = std::vector<entry_node*>;
-
-            mutable EntryTraits traits_;
             mutable buckets_type buckets_;
-            float load_factor_;
+            
             size_t size_;
+            size_t inc_cap_;
+            size_t dec_cap_;
+            size_t const min_cap_;
+            mutable EntryTraits traits_;
+            float load_factor_;
+
 
             hash_table(const hash_table&) = delete;
             hash_table& operator=(const hash_table&) = delete;
@@ -147,9 +157,9 @@ namespace adt
                 return c + (1 - (c & 1));
             }
 
-            static entry_node* create(Entry&& e)
+            static entry_node* create(Entry&& e, entry_node* next = nullptr)
             {
-                return new entry_node(std::forward<Entry>(e));
+                return new entry_node(std::forward<Entry>(e), next);
             }
 
             static void dispose(entry_node* n)
@@ -161,12 +171,12 @@ namespace adt
             {
                 for (auto& node : b) {
                     auto node_iter = node;
+                    node = nullptr;
                     while (node_iter) {
                         auto next = node_iter->next;
                         dispose(node_iter);
                         node_iter = next;
                     }
-                    node = nullptr;
                 }
             }
 
@@ -191,27 +201,29 @@ namespace adt
                 return traits_.hash(e);
             }
 
+            void update_cap(size_t new_cap)
+            {
+                float load_lim = load_factor_ * new_cap;
+                inc_cap_ = static_cast<size_t>(load_lim);
+                dec_cap_ = static_cast<size_t>(load_lim/5);
+            }
+
             void rehash(size_t new_cap)
             {
+                if (new_cap < min_cap_) { new_cap = min_cap_; }
+                if (new_cap == buckets_.size()) { return; }
                 buckets_type new_buckets(new_cap);
                 for (auto node : buckets_) {
                     while (node) {
                         size_t hash = hash_entry(node->value);
                         size_t idx = hash % new_cap;
                         entry_node* next = node->next;
-                        node->next = nullptr;
-                        entry_node* new_node = new_buckets[idx];
-                        if (!new_node) {
-                            new_buckets[idx] = node;
-                        } else {
-                            while (new_node->next) {
-                                new_node = new_node->next;
-                            }
-                            new_node->next = node;
-                        }
+                        node->next = new_buckets[idx];
+                        new_buckets[idx] = node;
                         node = next;
                     }
                 }
+                update_cap(new_cap);
                 std::swap(buckets_, new_buckets);
             }
 
@@ -234,6 +246,7 @@ namespace adt
                     pprev = &(node->next);
                     node = node->next;
                 }
+
                 return std::make_pair(pprev, node);
             }
 

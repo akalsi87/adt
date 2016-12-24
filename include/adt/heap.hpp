@@ -45,7 +45,7 @@ namespace adt
             assert(size() != 0);
             // assert(valid_heap());
             std::swap(arr_.front(), arr_.back());
-            T val = arr_.back();
+            T val(arr_.back());
             arr_.pop_back();
             swim_down(0);
             // assert(valid_heap());
@@ -64,26 +64,31 @@ namespace adt
             swim_up(arr_.size() - 1);
             // assert(valid_heap());
         }
-      protected:
+      private:
         std::vector<T> arr_;
         Comparator cmp_;
 
         heap(const heap&) = delete;
         heap& operator=(const heap&) = delete;
 
-        static int left_child(size_t i)
+        static size_t left_child(size_t i)
         {
-            return ((i+1) << 1) - 1;
+            size_t left = ((i+1) << 1) - 1;
+            assert(left < size());
+            return left;
         }
 
-        static int right_child(size_t i)
+        static size_t right_child(size_t i)
         {
-            return left_child(i) + 1;
+            size_t right = left_child(i) + 1;
+            assert(right < size());
+            return right;
         }
 
-        static int parent(size_t i)
+        static size_t parent(size_t i)
         {
-            return i == 0 ? 0 : ((i+1) >> 1) - 1;
+            assert(i != 0);
+            return ((i+1) >> 1) - 1;
         }
 
         void swim_up(size_t idx)

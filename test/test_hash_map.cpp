@@ -68,14 +68,17 @@ namespace performance
         if (env) {
             N = std::atoi(env);
         }
-        std::vector<int> keys(N);
+        std::vector<int> keys;
+        keys.reserve(N);
         for (int i = 0; i < N; ++i) {
-            keys[i] = std::rand();
+            keys.push_back(std::rand());
         }
         return keys;
     }
 
-    const std::vector<int> keys = generate_keys();
+    std::vector<int> keys = generate_keys();
+    std::vector<bool> erased_std(N);
+    std::vector<bool> erased_adt(N);
 
     adt::hash_map<int, const char*> adt_map;
     std::unordered_map<int, const char*> std_map;
@@ -92,6 +95,50 @@ namespace performance
         for (auto key : keys) {
             adt_map.insert(key, "num");
         }
+    }
+
+    CPP_TEST(pStdHashMap_erase)
+    {
+        int idx = 0;
+        for (auto key : keys) {
+            erased_std[idx++] = std_map.erase(key) == 1;
+        }
+    }
+
+    CPP_TEST(pAdtHashMap_erase)
+    {
+        int idx = 0;
+        for (auto key : keys) {
+            erased_adt[idx++] = adt_map.erase(key) == 1;
+        }
+    }
+
+    CPP_TEST(pStdHashMap_reinsert)
+    {
+        TEST_TRUE(std::equal(erased_adt.begin(), erased_adt.end(), erased_std.begin()));
+        for (auto key : keys) {
+            std_map.insert({ key, "num" });
+        }
+    }
+
+    CPP_TEST(pAdtHashMap_reinsert)
+    {
+        TEST_TRUE(std::equal(erased_adt.begin(), erased_adt.end(), erased_std.begin()));
+        for (auto key : keys) {
+            adt_map.insert(key, "num");
+        }
+    }
+
+    CPP_TEST( shuffleKeys )
+    {
+        static int shuffled = 0;
+        if (shuffled) return;
+        size_t total = keys.size();
+        for (size_t i = 1; i < total-1; ++i) {
+            auto idx = static_cast<size_t>(std::rand() % (i + 1));
+            if (idx != i) std::swap(keys[idx], keys[i]);
+        }
+        shuffled = 1;
     }
 
     CPP_TEST( pStdHashMap_find )
