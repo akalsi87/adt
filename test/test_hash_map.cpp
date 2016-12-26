@@ -25,9 +25,9 @@ CPP_TEST( hashMapIntToCString )
         TEST_TRUE(rv.first->first == val);
         TEST_TRUE(std::strcmp(rv.first->second, "num") == 0);
         TEST_TRUE(map.size() == (rv.second ? ++prev_size : prev_size));
-        if (i == 20) {
-            std::cout << map;
-        }
+        //if (i == 20) {
+        //    std::cout << map;
+        //}
     }
 
     size_t sz = map.size();
@@ -38,7 +38,7 @@ CPP_TEST( hashMapIntToCString )
 
     TEST_TRUE(map.erase(1) == 0);
 
-    std::cout << map << std::endl;
+    //std::cout << map << std::endl;
 }
 
 #include <unordered_map>
@@ -80,8 +80,8 @@ namespace performance
     std::vector<bool> erased_std(N);
     std::vector<bool> erased_adt(N);
 
-    adt::hash_map<int, const char*> adt_map;
     std::unordered_map<int, const char*> std_map;
+    adt::hash_map<int, const char*> adt_map;
 
     CPP_TEST( pStdHashMap_insert )
     {
@@ -97,7 +97,7 @@ namespace performance
         }
     }
 
-    CPP_TEST(pStdHashMap_erase)
+    CPP_TEST( pStdHashMap_erase )
     {
         int idx = 0;
         for (auto key : keys) {
@@ -105,7 +105,7 @@ namespace performance
         }
     }
 
-    CPP_TEST(pAdtHashMap_erase)
+    CPP_TEST( pAdtHashMap_erase )
     {
         int idx = 0;
         for (auto key : keys) {
@@ -113,7 +113,7 @@ namespace performance
         }
     }
 
-    CPP_TEST(pStdHashMap_reinsert)
+    CPP_TEST( pStdHashMap_reinsert )
     {
         TEST_TRUE(std::equal(erased_adt.begin(), erased_adt.end(), erased_std.begin()));
         for (auto key : keys) {
@@ -121,7 +121,7 @@ namespace performance
         }
     }
 
-    CPP_TEST(pAdtHashMap_reinsert)
+    CPP_TEST( pAdtHashMap_reinsert )
     {
         TEST_TRUE(std::equal(erased_adt.begin(), erased_adt.end(), erased_std.begin()));
         for (auto key : keys) {

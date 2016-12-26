@@ -73,16 +73,12 @@ namespace adt
 
         static size_t left_child(size_t i)
         {
-            size_t left = ((i+1) << 1) - 1;
-            assert(left < size());
-            return left;
+            return ((i+1) << 1) - 1;
         }
 
         static size_t right_child(size_t i)
         {
-            size_t right = left_child(i) + 1;
-            assert(right < size());
-            return right;
+            return left_child(i) + 1;
         }
 
         static size_t parent(size_t i)

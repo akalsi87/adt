@@ -15,3 +15,7 @@ create_test     (test_heap)
 add_test_exe    (test_trie test_trie.cpp)
 test_link_libs  (test_trie )
 create_test     (test_trie)
+
+add_test_exe    (test_dlist test_dlist.cpp)
+test_link_libs  (test_dlist )
+create_test     (test_dlist)

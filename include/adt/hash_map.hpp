@@ -73,25 +73,22 @@ namespace adt
             {
                 auto res = find_prev_and_curr(e);
                 entry_node* node = res.second;
-                if (!node) {
-                    inserted = true;
-                    entry_node* new_node = create(std::move(Entry(e)));
-                    auto pprev = res.first;
-                    assert(pprev);
-                    *pprev = new_node;
-                    ++size_;
-                    auto cap = capacity();
-                    if (size_ > inc_cap_) {
-                        size_t next_cap = next_capacity(cap);
-                        if (next_cap > cap) {
-                            rehash(next_cap);
-                        }// else { /* overflow! no rehash */ }
-                    }
-                    return &(new_node->value);
-                } else {
-                    inserted = false;
+                if (!(inserted = !node)) {
                     return &(node->value);
                 }
+                entry_node* new_node = create(std::move(Entry(e)));
+                auto pprev = res.first;
+                assert(pprev);
+                *pprev = new_node;
+                ++size_;
+                if (size_ > inc_cap_) {
+                    size_t cap = capacity();
+                    size_t next_cap = next_capacity(cap);
+                    if (next_cap > cap) {
+                        rehash(next_cap);
+                    }// else { /* overflow! no rehash */ }
+                }
+                return &(new_node->value);
             }
 
             size_t erase(const Entry& e)
@@ -104,7 +101,6 @@ namespace adt
                     dispose(node);
                     --size_;
 
-                    auto cap = capacity();
                     // shrink if table is too sparse
                     if (size_ < dec_cap_) {
                         rehash(next_capacity(size_ + 1));
@@ -232,7 +228,7 @@ namespace adt
                 return find_prev_and_curr(std::move(Entry(e)));
             }
 
-            std::pair<entry_node**, entry_node*> find_prev_and_curr(Entry&& e) const
+            inline std::pair<entry_node**, entry_node*> find_prev_and_curr(Entry&& e) const
             {
                 size_t hash = hash_entry(e);
                 size_t idx = hash % buckets_.size();
@@ -275,7 +271,8 @@ namespace adt
 
         entry_type* find(const K& k) const
         {
-            return table_.find({ k, V() });
+            fake_key_value entry = { k, };
+            return table_.find(*reinterpret_cast<entry_type*>(&entry));
         }
 
         std::pair<entry_type*, bool> insert(const K& k, const V& v)
@@ -287,7 +284,8 @@ namespace adt
 
         size_t erase(const K& k)
         {
-            return table_.erase({ k, V() });
+            fake_key_value entry = { k, };
+            return table_.erase(*reinterpret_cast<entry_type*>(&entry));
         }
 
         size_t capacity() const
@@ -300,7 +298,7 @@ namespace adt
             return table_.size();
         }
 
-      protected:
+      private:
         class entry_traits
         {
           public:
@@ -319,6 +317,12 @@ namespace adt
           private:
             Hash hash_;
             Eq eq_;
+        };
+
+        struct fake_key_value
+        {
+            K key;
+            char unused_[sizeof(V)];
         };
 
         detail::hash_table<entry_type, entry_traits> table_;
