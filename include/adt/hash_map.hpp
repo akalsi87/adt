@@ -6,9 +6,12 @@
 #ifndef ADT_HASH_MAP_HPP_INCL_GUARD
 #define ADT_HASH_MAP_HPP_INCL_GUARD
 
+#include "adt/dlist.hpp"
+
 #include <cassert>
 #include <iostream>
 #include <functional>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -35,9 +38,14 @@ namespace adt
         class hash_table
         {
           public:
+            using list_type = adt::dlist<Entry>;
+            using entry_iter = typename list_type::iterator;
+            using buckets_type = std::vector<entry_iter>;
+
             hash_table(size_t cap, float load_factor)
-              : buckets_(cap, nullptr)
-              , size_(0)
+              : list_()
+              , buckets_(cap, list_.end())
+              , num_entries_(cap)
               , inc_cap_(0)
               , dec_cap_(0)
               , min_cap_(37)
@@ -54,89 +62,90 @@ namespace adt
                 clear();
             }
 
+            void reserve(size_t n)
+            {
+                if (n > capacity()) {
+                    rehash(n);
+                }
+            }
+
             void clear()
             {
-                if (size_ != 0) {
-                    empty_contents(buckets_);
-                    size_ = 0;
+                if (size() != 0) {
+                    empty_contents();
                 }
             }
 
-            Entry* find(const Entry& e) const
+            inline entry_iter begin() const
             {
-                auto res = find_prev_and_curr(e);
-                entry_node* node = res.second;
-                return node ? &(node->value) : nullptr;
+                return list_.begin();
             }
 
-            Entry* insert(const Entry& e, bool& inserted)
+            inline entry_iter end() const
             {
-                auto res = find_prev_and_curr(e);
-                entry_node* node = res.second;
-                if (!(inserted = !node)) {
-                    return &(node->value);
-                }
-                entry_node* new_node = create(std::move(Entry(e)));
-                auto pprev = res.first;
-                assert(pprev);
-                *pprev = new_node;
-                ++size_;
-                if (size_ > inc_cap_) {
-                    size_t cap = capacity();
-                    size_t next_cap = next_capacity(cap);
-                    if (next_cap > cap) {
-                        rehash(next_cap);
-                    }// else { /* overflow! no rehash */ }
-                }
-                return &(new_node->value);
+                return list_.end();
             }
 
-            size_t erase(const Entry& e)
+            inline entry_iter find(const Entry& e) const
             {
-                auto res = find_prev_and_curr(e);
-                entry_node* node = res.second;
-                if (node) {
-                    entry_node** pprev = res.first;
-                    *(pprev) = node->next;
-                    dispose(node);
-                    --size_;
+                return find_entry_in_bucket(e, get_bucket(e));
+            }
 
-                    // shrink if table is too sparse
-                    if (size_ < dec_cap_) {
-                        rehash(next_capacity(size_ + 1));
+            inline entry_iter insert(const Entry& e, bool& inserted)
+            {
+                size_t const idx = get_bucket(e);
+                auto it = find_entry_in_bucket(e, idx);
+                if (it != end()) {
+                    inserted = false;
+                    return it;
+                }
+                inserted = true;
+                it = list_.insert(buckets_[idx], e);
+                buckets_[idx] = it;
+                ++num_entries_[idx];
+                if (list_.size() > inc_cap_) {
+                    reserve(next_capacity(capacity()));
+                }
+                return it;
+            }
+
+            inline size_t erase(const Entry& e)
+            {
+                //assert(std::accumulate(num_entries_.begin(), num_entries_.end(), int32_t(0)) == static_cast<int32_t>(size()));
+                size_t const bucket = get_bucket(e);
+                entry_iter it = find_entry_in_bucket(e, bucket);
+                if (it != end()) {
+                    if (--num_entries_[bucket] == 0) {
+                        buckets_[bucket] = end();
                     }
-
+                    if (buckets_[bucket] == it) {
+                        ++buckets_[bucket];
+                    }
+                    list_.erase(it);
+                    //assert(num_entries_[bucket] >= 0);
+                    // shrink if table is too sparse
+                    if (size() < dec_cap_) {
+                        rehash(next_capacity(size() + 1));
+                    }
                     return 1;
                 } else {
                     return 0;
                 }
             }
 
-            size_t capacity() const
+            inline size_t capacity() const
             {
                 return buckets_.size();
             }
 
-            size_t size() const
+            inline size_t size() const
             {
-                return size_;
+                return list_.size();
             }
           private:
-            struct entry_node
-            {
-                entry_node* next;
-                Entry value;
-
-                entry_node(Entry&& v, entry_node* n = nullptr)
-                  : next(n)
-                  , value(std::forward<Entry>(v))
-                { }
-            };
-
-            using buckets_type = std::vector<entry_node*>;
+            mutable list_type list_;
             mutable buckets_type buckets_;
-            
-            size_t size_;
+            std::vector<int32_t> num_entries_;
             size_t inc_cap_;
             size_t dec_cap_;
             size_t const min_cap_;
@@ -153,48 +162,41 @@ namespace adt
                 return c + (1 - (c & 1));
             }
 
-            static entry_node* create(Entry&& e, entry_node* next = nullptr)
+            void empty_contents()
             {
-                return new entry_node(std::forward<Entry>(e), next);
-            }
-
-            static void dispose(entry_node* n)
-            {
-                delete n;
-            }
-
-            static void empty_contents(buckets_type& b)
-            {
-                for (auto& node : b) {
-                    auto node_iter = node;
-                    node = nullptr;
-                    while (node_iter) {
-                        auto next = node_iter->next;
-                        dispose(node_iter);
-                        node_iter = next;
-                    }
-                }
+                list_.clear();
+                std::fill(buckets_.begin(), buckets_.end(), list_.end());
+                std::fill(num_entries_.begin(), num_entries_.end(), int32_t(0));
             }
 
             void print(std::ostream& os) const
             {
-                size_t idx = 0;
-                for (auto node : buckets_) {
-                    ++idx;
-                    if (!node) { continue; }
-                    os << "  [" << idx - 1 << "]: ";
-                    while (node) {
-                        auto next = node->next;
-                        os << node->value << " ";
-                        node = next;
+                auto num_buckets = buckets_.size();
+                for (size_t i = 0; i < num_buckets; ++i) {
+                    os << "  [" << i << "]: ";
+                    auto it = buckets_[i];
+                    auto num_entries = num_entries_[i];
+                    while (num_entries-- > 0) {
+                        os << *it++ << " ";
                     }
                     os << "\n";
                 }
             }
 
-            size_t hash_entry(const Entry& e) const
+            inline size_t hash_entry(const Entry& e) const
             {
                 return traits_.hash(e);
+            }
+
+            inline void insert_spliced(entry_iter to_move, list_type& list)
+            {
+                assert(list.end() != to_move);
+                auto const& entry = *to_move;
+                size_t const idx = get_bucket(entry);
+                auto it = buckets_[idx];
+                list_.splice(it, list, to_move);
+                buckets_[idx] = --it;
+                ++num_entries_[idx];
             }
 
             void update_cap(size_t new_cap)
@@ -208,42 +210,43 @@ namespace adt
             {
                 if (new_cap < min_cap_) { new_cap = min_cap_; }
                 if (new_cap == buckets_.size()) { return; }
-                buckets_type new_buckets(new_cap);
-                for (auto node : buckets_) {
-                    while (node) {
-                        size_t hash = hash_entry(node->value);
-                        size_t idx = hash % new_cap;
-                        entry_node* next = node->next;
-                        node->next = new_buckets[idx];
-                        new_buckets[idx] = node;
-                        node = next;
-                    }
+                if (size() == 0) { return; }
+                hash_table<Entry, EntryTraits> exchange(new_cap, load_factor_);
+                entry_iter it = list_.begin();
+                entry_iter const end_iter = list_.end();
+                while (it != end_iter) {
+                    auto next = it;
+                    ++next;
+                    exchange.insert_spliced(it, list_);
+                    it = next;
                 }
-                update_cap(new_cap);
-                std::swap(buckets_, new_buckets);
+                std::swap(buckets_, exchange.buckets_);
+                std::swap(list_, exchange.list_);
+                std::swap(num_entries_, exchange.num_entries_);
+                std::swap(inc_cap_, exchange.inc_cap_);
+                std::swap(dec_cap_, exchange.dec_cap_);
             }
 
-            std::pair<entry_node**, entry_node*> find_prev_and_curr(const Entry& e) const
-            {
-                return find_prev_and_curr(std::move(Entry(e)));
-            }
-
-            inline std::pair<entry_node**, entry_node*> find_prev_and_curr(Entry&& e) const
+            inline size_t get_bucket(Entry const& e) const
             {
                 size_t hash = hash_entry(e);
-                size_t idx = hash % buckets_.size();
+                const size_t num_buckets = buckets_.size();
+                return hash % num_buckets;
+            }
 
-                entry_node** pprev = &buckets_[idx];
-                entry_node* node = *pprev;
-                while (node) {
-                    if (traits_.is_equal(e, node->value)) {
-                        break;
+            entry_iter find_entry_in_bucket(Entry const& e, size_t idx) const
+            {
+                //assert(std::accumulate(num_entries_.begin(), num_entries_.end(), int32_t(0)) == static_cast<int32_t>(size()));
+                entry_iter it = buckets_[idx];
+                auto num = num_entries_[idx];
+                //assert(std::distance(it, end()) >= num);
+                while (num-- > 0) {
+                    if (traits_.is_equal(e, *it)) {
+                        return it;
                     }
-                    pprev = &(node->next);
-                    node = node->next;
+                    ++it;
                 }
-
-                return std::make_pair(pprev, node);
+                return end();
             }
 
             template <class K, class V, class Hash, class Eq>
@@ -255,8 +258,29 @@ namespace adt
     template <class K, class V, class Hash = std::hash<K>, class Eq = std::equal_to<K>>
     class hash_map
     {
+        using Entry = std::pair<K const, V>;
+        class EntryTraits
+        {
+          public:
+            EntryTraits() : hash_(), eq_()
+            { }
+
+            inline size_t hash(const Entry& e)
+            {
+                return hash_(e.first);
+            }
+
+            inline bool is_equal(const Entry& a, const Entry& b)
+            {
+                return eq_(a.first, b.first);
+            }
+          private:
+            Hash hash_;
+            Eq eq_;
+        };
+        using table_type = detail::hash_table<Entry, EntryTraits>;
       public:
-        using entry_type = std::pair<const K, V>;
+        using iterator = typename table_type::entry_iter;
 
         hash_map(size_t cap = 37, float load_factor = 0.75f)
           : table_(cap, load_factor)
@@ -269,63 +293,53 @@ namespace adt
             table_.clear();
         }
 
-        entry_type* find(const K& k) const
+        inline iterator begin()
         {
-            fake_key_value entry = { k, };
-            return table_.find(*reinterpret_cast<entry_type*>(&entry));
+            return table_.begin();
         }
 
-        std::pair<entry_type*, bool> insert(const K& k, const V& v)
+        inline iterator end()
+        {
+            return table_.end();
+        }
+
+        inline iterator find(const K& k) const
+        {
+            fake_key_value entry = { k, };
+            return table_.find(*reinterpret_cast<Entry*>(&entry));
+        }
+
+        inline std::pair<iterator, bool> insert(const K& k, const V& v)
         {
             bool inserted = false;
-            entry_type* res = table_.insert({k, v}, inserted);
+            iterator res = table_.insert({k, v}, inserted);
             return std::make_pair(res, inserted);
         }
 
-        size_t erase(const K& k)
+        inline size_t erase(const K& k)
         {
             fake_key_value entry = { k, };
-            return table_.erase(*reinterpret_cast<entry_type*>(&entry));
+            return table_.erase(*reinterpret_cast<Entry*>(&entry));
         }
 
-        size_t capacity() const
+        inline size_t capacity() const
         {
             return table_.capacity();
         }
 
-        size_t size() const
+        inline size_t size() const
         {
             return table_.size();
         }
 
       private:
-        class entry_traits
-        {
-          public:
-            entry_traits() : hash_(), eq_()
-            { }
-
-            size_t hash(const entry_type& e)
-            {
-                return hash_(e.first);
-            }
-
-            bool is_equal(const entry_type& a, const entry_type& b)
-            {
-                return eq_(a.first, b.first);
-            }
-          private:
-            Hash hash_;
-            Eq eq_;
-        };
-
         struct fake_key_value
         {
             K key;
             char unused_[sizeof(V)];
         };
 
-        detail::hash_table<entry_type, entry_traits> table_;
+        table_type table_;
 
         hash_map(const hash_map&) = delete;
         hash_map& operator=(const hash_map&) = delete;

@@ -30,9 +30,17 @@ struct dlist_node
     dlist_node(T&& val) : prev(), next(), value(std::forward<T>(val))
     { }
 
+    dlist_node(T const& val) : prev(), next(), value(val)
+    { }
+
     static dlist_node* create(T&& val)
     {
         return new dlist_node(std::forward<T>(val));
+    }
+
+    static dlist_node* create(T const& val)
+    {
+        return new dlist_node(val);
     }
 
     static void dispose(dlist_node* node)
@@ -80,6 +88,13 @@ class dlist_iterator
         return *this;
     }
 
+    dlist_iterator operator++(int)
+    {
+        dlist_iterator to_ret(node_, *list_);
+        node_ = node_->next;
+        return to_ret;
+    }
+
     dlist_iterator& operator--()
     {
         if (!node_) {
@@ -92,7 +107,7 @@ class dlist_iterator
 
     bool operator==(dlist_iterator const& rhs) const
     {
-        return node_ == rhs.node_ && list_ == rhs.list_;
+        return node_ == rhs.node_;
     }
 
     bool operator!=(dlist_iterator const& rhs) const
@@ -198,23 +213,25 @@ class dlist
     iterator erase(iterator to_rem_iter)
     {
         auto node_to_rem = to_rem_iter.node_;
-        if (node_to_rem->prev == nullptr) {
-            front_ = node_to_rem->next;
+        assert(node_to_rem);
+        auto prev = node_to_rem->prev;
+        auto next = node_to_rem->next;
+        if (prev == nullptr) {
+            front_ = next;
         } else {
-            node_to_rem->prev->next = node_to_rem->next;
+            prev->next = next;
         }
-        if (node_to_rem->next == nullptr){
-            rear_ = node_to_rem->prev;
+        if (next == nullptr){
+            rear_ = prev;
         } else {
-            node_to_rem->next->prev = node_to_rem->prev;
+            next->prev = prev;
         }
         --size_;
-        auto next = node_to_rem->next;
         node_type::dispose(node_to_rem);
         return iterator(next, *this);
     }
 
-    void splice(iterator before, iterator to_move, dlist& to_move_from)
+    iterator splice(iterator before, dlist& to_move_from, iterator to_move)
     {
         auto before_node = before.node_;
         auto to_move_node = to_move.node_;
@@ -227,6 +244,7 @@ class dlist
         } else {
             insert_before(to_move_node, before_node);
         }
+        return iterator(to_move_node, *this);
     }
 
     void clear()
@@ -235,6 +253,15 @@ class dlist
         const auto e = end();
         while (it != e) {
             it = erase(it);
+        }
+    }
+
+    void swap(dlist& rhs)
+    {
+        if (this != &rhs) {
+            std::swap(front_, rhs.front_);
+            std::swap(rear_, rhs.rear_);
+            std::swap(size_, rhs.size_);
         }
     }
   private:

@@ -70,7 +70,7 @@ CPP_TEST( dlist_of_int )
         TEST_TRUE(*(++(++l.begin())) == -1);
     }
     {
-        l.splice(l.begin(), --l.end(), l);
+        l.splice(l.begin(), l, --l.end());
         TEST_TRUE(!l.empty());
         TEST_TRUE(l.size() == 3);
         TEST_TRUE(l.begin() != l.end());

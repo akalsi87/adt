@@ -6,11 +6,14 @@
 #include "adt/hash_map.hpp"
 #include "unittest.hpp"
 
+#include <unordered_map>
+
 #include <cstring>
 
 CPP_TEST( hashMapIntToCString )
 {
     adt::hash_map<int, const char*> map;
+    std::unordered_map<int, const char*> ref;
 
     std::cout << map << std::endl;
 
@@ -24,15 +27,18 @@ CPP_TEST( hashMapIntToCString )
         auto rv = map.insert(val, "num");
         TEST_TRUE(rv.first->first == val);
         TEST_TRUE(std::strcmp(rv.first->second, "num") == 0);
+        TEST_TRUE(rv.second == ref.insert({ val, "num" }).second);
         TEST_TRUE(map.size() == (rv.second ? ++prev_size : prev_size));
-        //if (i == 20) {
-        //    std::cout << map;
-        //}
+        TEST_TRUE(rv.first == map.find(val));
+        if (i == 4 || i == 50) {
+            std::cout << map;
+        }
     }
 
     size_t sz = map.size();
     for (auto key : keys) {
         size_t removed = map.erase(key);
+        TEST_TRUE(removed == ref.erase(key));
         TEST_TRUE(map.size() == (removed ? --sz : sz));
     }
 
@@ -40,8 +46,6 @@ CPP_TEST( hashMapIntToCString )
 
     //std::cout << map << std::endl;
 }
-
-#include <unordered_map>
 
 namespace performance
 {
@@ -155,7 +159,7 @@ namespace performance
     {
         for (auto key : keys) {
             auto p = adt_map.find(key);
-            if (!p) {
+            if (p == adt_map.end()) {
                 exit(1);
             }
         }
